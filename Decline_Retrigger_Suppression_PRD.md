@@ -1,4 +1,6 @@
-# Decline & Retrigger — respecting an explicit CSP refusal
+# Do not send the connection again If CSP says 'I can't Install'
+
+*Covers both a decline before acceptance and an installation-failure report after it — either way the CSP has said he cannot install, and either way the connection never goes back to him.*
 
 | | | | |
 |---|---|---|---|
