@@ -178,49 +178,49 @@ Lifecycle of an **offer** — one connection offered to one CSP, created when De
 
 ## 7. Acceptance Criteria
 
-**Note on example data.** ⚠️ *AI GENERATED — review* CSP names and the zone ID below are real platform identifiers, used as test actors so each AC is executable against real data shapes. They are scenario inputs, not assertions about any CSP's actual conduct. `zone_002430579` is the real multi-CSP decline cluster from the Jun–Jul 2026 decline analysis (50 declines, 4 CSPs, 31 bookings).
+**Note on example data.** `zone_002430579` is a real zone — the multi-CSP decline cluster from the Jun–Jul 2026 decline analysis (50 declines, 4 CSPs, 31 bookings) — so the scenarios below run against a real supply shape. `csp-a` … `csp-d` stand in for the four real CSPs of that zone; the names are withheld because this document is public and these are hypothetical refusal scenarios, not records of any CSP's conduct. Connection IDs (`c-88xx`) and the August 2026 dates are invented.
 
 ### SUP — Explicit refusal suppresses (T1, T2)
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-SUP-1 | **Given** connection `c-8801` in `zone_002430579` assigned to SATYA NET on 5 Aug 2026 09:00 IST, **When** SATYA NET declines it at 09:35 with reason `COVERAGE_NOT_FEASIBLE`, **Then** a permanent suppression exists for (SATYA NET, `c-8801`) before the next routing pass runs, the connection is rerouted immediately, and SATYA NET is excluded from that pass with the permanent-refusal reason. | R1a · R1b · R1c · T1 · G1 · C-03 | Settled |
-| AC-SUP-2 | **Given** connection `c-8802` accepted by Khushi Broadband with a confirmed slot of 6 Aug 2026, **When** Khushi Broadband reports the installation could not be completed with reason `BACKHAUL_ISSUE`, **Then** a permanent suppression exists for (Khushi Broadband, `c-8802`), CL's retry path runs and reroutes as before, and Khushi Broadband is excluded from every later pass for `c-8802`. | R2a · R2b · R2c · T2 · G1 | Settled |
-| AC-SUP-3 | **Given** the suppression from AC-SUP-1, **When** routing runs again for `c-8801` on 12 Aug 2026 — seven days later, well past C-02 (24 h), with the ping-pong count at 1, below C-01 (2) — **Then** SATYA NET is still excluded, with the permanent-refusal reason and not a cooldown or ping-pong reason. | R1b · T5 · G1 | Settled |
-| AC-SUP-4 | **Given** connection `c-8803` in `zone_002430579` where SATYA NET, Minto Cable Network and JSR Broadband have all explicitly declined and are the zone's only eligible CSPs, **When** routing runs, **Then** routing fails with no candidate eligible and no suppressed CSP is re-included to fill the gap. | R6b · T5 · G1 · G4 | Settled |
-| AC-SUP-5 | **Given** connection `c-8804` assigned to JSR Broadband, **When** JSR Broadband declines with reason `SCHEDULE_CONFLICT` — a logistics reason, not a capability one — **Then** the suppression is permanent exactly as for `COVERAGE_NOT_FEASIBLE`: reason class does not soften it (§1 Boundary). | R1a · T1 · C-05 | Settled |
-| AC-SUP-6 ⚠️ *AI GENERATED — review* | **Given** the suppression from AC-SUP-1, **When** `c-8801` is later re-routed by a system-structural reallocation rather than a refusal or timeout, **Then** SATYA NET is still excluded with the permanent-refusal reason — suppression holds on every routing path, not only the refusal path. | R1b · T5 · G1 | Settled |
-| AC-SUP-7 ⚠️ *AI GENERATED — review* | **Given** connection `c-8805` that Minto Cable Network let lapse on a P41 timeout on 5 Aug 2026 and that SATYA NET then declined on 6 Aug, **When** routing runs on 8 Aug, **Then** only SATYA NET is permanently excluded; Minto Cable Network is excluded only if his cooldown or allowance says so, and is eligible once C-02 has elapsed. | R1a · R3b · T1 · T3 · T7 · G1 · G2 | Settled |
+| AC-SUP-1 | **Given** connection `c-8801` in `zone_002430579` assigned to csp-a on 5 Aug 2026 09:00 IST, **When** csp-a declines it at 09:35 with reason `COVERAGE_NOT_FEASIBLE`, **Then** a permanent suppression exists for (csp-a, `c-8801`) before the next routing pass runs, the connection is rerouted immediately, and csp-a is excluded from that pass with the permanent-refusal reason. | R1a · R1b · R1c · T1 · G1 · C-03 | Settled |
+| AC-SUP-2 | **Given** connection `c-8802` accepted by csp-b with a confirmed slot of 6 Aug 2026, **When** csp-b reports the installation could not be completed with reason `BACKHAUL_ISSUE`, **Then** a permanent suppression exists for (csp-b, `c-8802`), CL's retry path runs and reroutes as before, and csp-b is excluded from every later pass for `c-8802`. | R2a · R2b · R2c · T2 · G1 | Settled |
+| AC-SUP-3 | **Given** the suppression from AC-SUP-1, **When** routing runs again for `c-8801` on 12 Aug 2026 — seven days later, well past C-02 (24 h), with the ping-pong count at 1, below C-01 (2) — **Then** csp-a is still excluded, with the permanent-refusal reason and not a cooldown or ping-pong reason. | R1b · T5 · G1 | Settled |
+| AC-SUP-4 | **Given** connection `c-8803` in `zone_002430579` where csp-a, csp-c and csp-d have all explicitly declined and are the zone's only eligible CSPs, **When** routing runs, **Then** routing fails with no candidate eligible and no suppressed CSP is re-included to fill the gap. | R6b · T5 · G1 · G4 | Settled |
+| AC-SUP-5 | **Given** connection `c-8804` assigned to csp-d, **When** csp-d declines with reason `SCHEDULE_CONFLICT` — a logistics reason, not a capability one — **Then** the suppression is permanent exactly as for `COVERAGE_NOT_FEASIBLE`: reason class does not soften it (§1 Boundary). | R1a · T1 · C-05 | Settled |
+| AC-SUP-6 ⚠️ *AI GENERATED — review* | **Given** the suppression from AC-SUP-1, **When** `c-8801` is later re-routed by a system-structural reallocation rather than a refusal or timeout, **Then** csp-a is still excluded with the permanent-refusal reason — suppression holds on every routing path, not only the refusal path. | R1b · T5 · G1 | Settled |
+| AC-SUP-7 ⚠️ *AI GENERATED — review* | **Given** connection `c-8805` that csp-c let lapse on a P41 timeout on 5 Aug 2026 and that csp-a then declined on 6 Aug, **When** routing runs on 8 Aug, **Then** only csp-a is permanently excluded; csp-c is excluded only if his cooldown or allowance says so, and is eligible once C-02 has elapsed. | R1a · R3b · T1 · T3 · T7 · G1 · G2 | Settled |
 
 ### TMO — Timeout keeps the second chance (T3, T7, T8)
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-TMO-1 | **Given** connection `c-8810` assigned to Minto Cable Network at 5 Aug 2026 10:00 IST with no slot proposal made, **When** C-08 (2 h) elapses at 12:00 and the timeout reroute runs, **Then** the cooldown and ping-pong count are applied as today, **no** suppression exists for (Minto Cable Network, `c-8810`), and the connection is rerouted. | R3a · R3 must-not · T3 · G2 · C-08 | Settled |
-| AC-TMO-2 | **Given** the timeout from AC-TMO-1 with the ping-pong count at 1, **When** routing runs for `c-8810` on 7 Aug 2026 — after C-02 (24 h) has elapsed — **Then** Minto Cable Network is eligible again and may be assigned the connection a second time. | R3b · T7 · T8 · G2 | Settled |
-| AC-TMO-3 | **Given** connection `c-8811` accepted by Khushi Broadband with a confirmed slot of 5 Aug 2026 and no ISP config submitted, **When** the grace clock fires at slot end plus C-09 (72 h) and the system raises the install failure, **Then** it is treated as a timeout — cooldown and count, no suppression — even though it arrives as the same failure-report event a CSP's own report would produce. | R3a · R2 must-not (b) · T3 · G2 · C-09 | Settled |
-| AC-TMO-4 | **Given** connection `c-8812` where Minto Cable Network has now timed out twice, taking the ping-pong count to 2, **When** routing runs, **Then** Minto Cable Network is excluded with the existing ping-pong reason — unchanged from today, and not the permanent-refusal reason. | T6 · C-01 · G2 | Settled |
+| AC-TMO-1 | **Given** connection `c-8810` assigned to csp-c at 5 Aug 2026 10:00 IST with no slot proposal made, **When** C-08 (2 h) elapses at 12:00 and the timeout reroute runs, **Then** the cooldown and ping-pong count are applied as today, **no** suppression exists for (csp-c, `c-8810`), and the connection is rerouted. | R3a · R3 must-not · T3 · G2 · C-08 | Settled |
+| AC-TMO-2 | **Given** the timeout from AC-TMO-1 with the ping-pong count at 1, **When** routing runs for `c-8810` on 7 Aug 2026 — after C-02 (24 h) has elapsed — **Then** csp-c is eligible again and may be assigned the connection a second time. | R3b · T7 · T8 · G2 | Settled |
+| AC-TMO-3 | **Given** connection `c-8811` accepted by csp-b with a confirmed slot of 5 Aug 2026 and no ISP config submitted, **When** the grace clock fires at slot end plus C-09 (72 h) and the system raises the install failure, **Then** it is treated as a timeout — cooldown and count, no suppression — even though it arrives as the same failure-report event a CSP's own report would produce. | R3a · R2 must-not (b) · T3 · G2 · C-09 | Settled |
+| AC-TMO-4 | **Given** connection `c-8812` where csp-c has now timed out twice, taking the ping-pong count to 2, **When** routing runs, **Then** csp-c is excluded with the existing ping-pong reason — unchanged from today, and not the permanent-refusal reason. | T6 · C-01 · G2 | Settled |
 
 ### DFL — Default-safe classification (T9)
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-DFL-1 | **Given** connection `c-8820` assigned to SATYA NET, with the booking still live and not cancelled, **When** SATYA NET reports the install failed with reason `CUSTOMER_REFUSED` — the customer turned the technician away at the door, which is not SATYA NET refusing the work — **Then** the connection re-enters routing, cooldown and count are applied as today, **no** suppression is created, and SATYA NET may receive `c-8820` again. | R5a · T9 · G3 | Settled |
-| AC-DFL-2 | **Given** connection `c-8821` assigned to JSR Broadband, **When** the install fails with `BINDING_MISSING` — a device-binding integrity failure, not a CSP decision — **Then** no suppression is created and the reason is recorded as unclassified for later classification. | R5a · R5b · T9 · G3 | Settled |
+| AC-DFL-1 | **Given** connection `c-8820` assigned to csp-a, with the booking still live and not cancelled, **When** csp-a reports the install failed with reason `CUSTOMER_REFUSED` — the customer turned the technician away at the door, which is not csp-a refusing the work — **Then** the connection re-enters routing, cooldown and count are applied as today, **no** suppression is created, and csp-a may receive `c-8820` again. | R5a · T9 · G3 | Settled |
+| AC-DFL-2 | **Given** connection `c-8821` assigned to csp-d, **When** the install fails with `BINDING_MISSING` — a device-binding integrity failure, not a CSP decision — **Then** no suppression is created and the reason is recorded as unclassified for later classification. | R5a · R5b · T9 · G3 | Settled |
 | AC-DFL-3 | **Given** a future exit reason `TIMEOUT_ARRIVED_AT_SITE`, raised once its per-stage flag is enabled in production and before C-06 has been extended to include it, **When** the exit is processed, **Then** cooldown and count are applied and no suppression is created — the CSP is not blocked by a clock that is absent from both lists. | R5a · T9 · G3 · C-06 | Settled |
 
 ### WF — Workflows
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-WF-1 | **Given** connection `c-8830` in `zone_002430579` newly requested on 5 Aug 2026, **When** SATYA NET declines it at 09:35 (`COVERAGE_NOT_FEASIBLE`), it reroutes to Minto Cable Network who lets the P41 window lapse, it reroutes again to Khushi Broadband who accepts and installs on 7 Aug, **Then** `c-8830` is active, SATYA NET was never offered it again at any point, and Minto Cable Network remained eligible throughout with a ping-pong count of 1. | T1 · T3 · T5 · T7 · G1 · G2 | Settled |
-| AC-WF-2 | **Given** connection `c-8831` in a two-CSP zone, **When** both SATYA NET and JSR Broadband explicitly decline it on 5 Aug 2026, **Then** routing fails with every candidate permanently excluded, the connection stays in REQUESTED, and it expires at C-07 (7 days) on 12 Aug 2026 without either CSP being offered it again. | T5 · T11 · G1 · G4 · R6b · R6 must-not (b) | Settled |
+| AC-WF-1 | **Given** connection `c-8830` in `zone_002430579` newly requested on 5 Aug 2026, **When** csp-a declines it at 09:35 (`COVERAGE_NOT_FEASIBLE`), it reroutes to csp-c who lets the P41 window lapse, it reroutes again to csp-b who accepts and installs on 7 Aug, **Then** `c-8830` is active, csp-a was never offered it again at any point, and csp-c remained eligible throughout with a ping-pong count of 1. | T1 · T3 · T5 · T7 · G1 · G2 | Settled |
+| AC-WF-2 | **Given** connection `c-8831` in a two-CSP zone, **When** both csp-a and csp-d explicitly decline it on 5 Aug 2026, **Then** routing fails with every candidate permanently excluded, the connection stays in REQUESTED, and it expires at C-07 (7 days) on 12 Aug 2026 without either CSP being offered it again. | T5 · T11 · G1 · G4 · R6b · R6 must-not (b) | Settled |
 
 ### FAIL — Failure windows (T12)
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-FAIL-1 | **Given** SATYA NET declining `c-8840`, **When** the suppression cannot be recorded, **Then** the decline is still accepted, cooldown and count are applied as today, the connection is still rerouted, and the failure to suppress is raised for ops within C-03 — the CSP is never blocked on the strength of an unrecorded refusal, and the customer's connection is never stalled by it. | T12 · G3 · G4 · C-03 · R1 must-not (b) | Settled |
+| AC-FAIL-1 | **Given** csp-a declining `c-8840`, **When** the suppression cannot be recorded, **Then** the decline is still accepted, cooldown and count are applied as today, the connection is still rerouted, and the failure to suppress is raised for ops within C-03 — the CSP is never blocked on the strength of an unrecorded refusal, and the customer's connection is never stalled by it. | T12 · G3 · G4 · C-03 · R1 must-not (b) | Settled |
 
 ### REG — Regression (§1 Boundary)
 
@@ -230,38 +230,38 @@ Lifecycle of an **offer** — one connection offered to one CSP, created when De
 | AC-REG-2 | **Given** the exits outside C-05 — customer refusal, verification failure, access denied, device-binding missing — **When** each occurs, **Then** each behaves exactly as it does today. | §1 Boundary · R5 · G3 | Settled |
 | AC-REG-3 | **Given** any refusal or timeout, **When** it is processed, **Then** the reroute happens at the same point and with the same immediacy as today, and the two retry counters (P78 on the connection, P50 on the allocation) move exactly as they do today. | §1 Boundary · R1c · R2c | Settled |
 | AC-REG-4 | **Given** a decline and a P41 timeout, **When** each is processed, **Then** the existing decline-pattern signal is emitted for both, with its present type labels and reason codes unchanged, and both remain distinguishable to Quality OS. | R7a · R7b · R7 must-not | Settled |
-| AC-REG-5 ⚠️ *AI GENERATED — review* | **Given** SATYA NET permanently suppressed on `c-8801`, **When** routing runs for a different connection `c-8899` in the same zone on the same day, **Then** SATYA NET is fully eligible for `c-8899` — suppression never leaks beyond the connection it was recorded against (C-04). | C-04 · T5 · §1 Boundary | Settled |
-| AC-REG-6 | **Given** connection `c-8898` assigned to SATYA NET on 5 Aug 2026, **When** the customer cancels the booking, **Then** the connection moves to pending-deactivation or deactivated, no task is created for any CSP, no reroute occurs, and no suppression is recorded — the cancel path is untouched by this spec. | §1 Boundary | Settled |
+| AC-REG-5 ⚠️ *AI GENERATED — review* | **Given** csp-a permanently suppressed on `c-8801`, **When** routing runs for a different connection `c-8899` in the same zone on the same day, **Then** csp-a is fully eligible for `c-8899` — suppression never leaks beyond the connection it was recorded against (C-04). | C-04 · T5 · §1 Boundary | Settled |
+| AC-REG-6 | **Given** connection `c-8898` assigned to csp-a on 5 Aug 2026, **When** the customer cancels the booking, **Then** the connection moves to pending-deactivation or deactivated, no task is created for any CSP, no reroute occurs, and no suppression is recorded — the cancel path is untouched by this spec. | §1 Boundary | Settled |
 
 ### RACE — Precedence (§3a)
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-RACE-1 | **Given** connection `c-8850` assigned to JSR Broadband with the P41 window expiring at 12:00:00 on 5 Aug 2026, **When** the timeout reroute commits at 12:00:00 and JSR Broadband's decline commits at 12:00:01, **Then** the allocation is rerouted as a timeout, **no** suppression is created for (JSR Broadband, `c-8850`), the decline is still recorded for Quality and Enforcement, and the connection may later return to JSR Broadband once — the accepted hole in G1. | R4a · R4b · R4 must-not (a) · R4 must-not (b) · T10 · G1 exception | Settled |
-| AC-RACE-2 | **Given** connection `c-8851` where SATYA NET is both permanently suppressed and inside the C-02 cooldown window, **When** a routing pass evaluates him, **Then** he is excluded with the permanent-refusal reason, not the transient cooldown reason — so the exclusion does not appear to lapse when the cooldown does. | §3a precedence · T5 | Settled |
+| AC-RACE-1 | **Given** connection `c-8850` assigned to csp-d with the P41 window expiring at 12:00:00 on 5 Aug 2026, **When** the timeout reroute commits at 12:00:00 and csp-d's decline commits at 12:00:01, **Then** the allocation is rerouted as a timeout, **no** suppression is created for (csp-d, `c-8850`), the decline is still recorded for Quality and Enforcement, and the connection may later return to csp-d once — the accepted hole in G1. | R4a · R4b · R4 must-not (a) · R4 must-not (b) · T10 · G1 exception | Settled |
+| AC-RACE-2 | **Given** connection `c-8851` where csp-a is both permanently suppressed and inside the C-02 cooldown window, **When** a routing pass evaluates him, **Then** he is excluded with the permanent-refusal reason, not the transient cooldown reason — so the exclusion does not appear to lapse when the cooldown does. | §3a precedence · T5 | Settled |
 
 ### DUP — Duplicate triggers
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-DUP-1 | **Given** the suppression from AC-SUP-1, **When** a duplicate decline event for (SATYA NET, `c-8801`) is delivered again, **Then** the suppression is unchanged, the ping-pong count does not move a second time, and no second reroute is triggered. | T10 | Settled |
-| AC-DUP-2 | **Given** connection `c-8852` where Khushi Broadband reported failure and was suppressed, **When** Khushi Broadband submits a second failure report for the same connection, **Then** the report is accepted and recorded, and suppression is unchanged. | T10 · R4b | Settled |
+| AC-DUP-1 | **Given** the suppression from AC-SUP-1, **When** a duplicate decline event for (csp-a, `c-8801`) is delivered again, **Then** the suppression is unchanged, the ping-pong count does not move a second time, and no second reroute is triggered. | T10 | Settled |
+| AC-DUP-2 | **Given** connection `c-8852` where csp-b reported failure and was suppressed, **When** csp-b submits a second failure report for the same connection, **Then** the report is accepted and recorded, and suppression is unchanged. | T10 · R4b | Settled |
 
 ### BV — Boundary values
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-BV-1 | **Given** Minto Cable Network timed out on `c-8860` at 10:00 on 5 Aug 2026, **When** routing runs at 09:59 on 6 Aug — one minute inside C-02 (24 h) — **Then** he is excluded with the cooldown reason. | C-02 · T4 · G2 | Settled |
+| AC-BV-1 | **Given** csp-c timed out on `c-8860` at 10:00 on 5 Aug 2026, **When** routing runs at 09:59 on 6 Aug — one minute inside C-02 (24 h) — **Then** he is excluded with the cooldown reason. | C-02 · T4 · G2 | Settled |
 | AC-BV-2 | **Given** the same timeout on `c-8860`, **When** routing runs at 10:01 on 6 Aug — one minute outside C-02 (24 h) — **Then** he is eligible again. | C-02 · T7 · G2 | Settled |
-| AC-BV-3 | **Given** the ping-pong allowance C-01 at its default of 2 and Minto Cable Network's count at 1 for `c-8861`, **When** routing runs after the cooldown lapses, **Then** he is eligible and may be offered the connection a second time. | C-01 · T7 · T8 · G2 | Settled |
-| AC-BV-4 | **Given** Minto Cable Network's count at 2 for `c-8861` — at the allowance C-01 (2) — **When** routing runs after the cooldown lapses, **Then** he is excluded with the ping-pong reason. | C-01 · T6 · G2 | Settled |
-| AC-BV-5 | **Given** SATYA NET declined `c-8862` one second ago, **When** the very next routing pass for `c-8862` runs, **Then** he is already excluded — suppression is in force with no transient window of eligibility (C-03). | C-03 · T1 · T5 · G1 | Settled |
+| AC-BV-3 | **Given** the ping-pong allowance C-01 at its default of 2 and csp-c's count at 1 for `c-8861`, **When** routing runs after the cooldown lapses, **Then** he is eligible and may be offered the connection a second time. | C-01 · T7 · T8 · G2 | Settled |
+| AC-BV-4 | **Given** csp-c's count at 2 for `c-8861` — at the allowance C-01 (2) — **When** routing runs after the cooldown lapses, **Then** he is excluded with the ping-pong reason. | C-01 · T6 · G2 | Settled |
+| AC-BV-5 | **Given** csp-a declined `c-8862` one second ago, **When** the very next routing pass for `c-8862` runs, **Then** he is already excluded — suppression is in force with no transient window of eligibility (C-03). | C-03 · T1 · T5 · G1 | Settled |
 
 ### CFG — Configurability
 
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
-| AC-CFG-1 | **Given** C-01 lowered from 2 to 1, **When** Minto Cable Network times out once on `c-8870` and the cooldown lapses, **Then** he is excluded with the ping-pong reason and the connection never returns to him — the timeout second chance is configurable away without touching suppression. | C-01 · T6 · G2 | Settled |
+| AC-CFG-1 | **Given** C-01 lowered from 2 to 1, **When** csp-c times out once on `c-8870` and the cooldown lapses, **Then** he is excluded with the ping-pong reason and the connection never returns to him — the timeout second chance is configurable away without touching suppression. | C-01 · T6 · G2 | Settled |
 | AC-CFG-2 | **Given** C-06 extended to include `TIMEOUT_ARRIVED_AT_SITE` after that flag is enabled in production, **When** a connection exits on that reason, **Then** it is treated as a timeout — cooldown and count, no suppression — and behaviour changes with no code change. | C-06 · T3 · G2 | Settled |
 | AC-CFG-3 | **Given** a new CSP decline reason code added to the picker and to C-05, **When** a CSP declines with it, **Then** a permanent suppression is created exactly as for the existing reason codes. | C-05 · T1 · G1 | Settled |
 
@@ -327,7 +327,7 @@ What the platform must be able to do for this feature to exist. Whether these ar
 | §7 AC-SUP-7 | The two-CSP mixed-exit AC | Adversarial pass: nothing else pinned that a refusal by one CSP leaves another CSP's standing untouched. |
 | §7 AC-REG-5 | The cross-connection non-leak AC | Adversarial pass: nothing else pinned that suppression cannot over-block a CSP on unrelated connections — the worst failure mode of this feature. |
 | §3b T12 | The whole row — the failure envelope | No failure behaviour was elicited. Fails open to today's behaviour on the reasoning that wrongly blocking a CSP is worse than missing one suppression. Confirm that trade is the one you want. |
-| §7 — CSP names and zone ID | SATYA NET, Minto Cable Network, JSR Broadband, Khushi Broadband, `zone_002430579` | You approved real identifiers. These are real platform CSPs used as scenario actors; the ACs assert nothing about their real conduct. Connection IDs (`c-88xx`) and August 2026 dates are invented. |
+| §7 — CSP labels and zone ID | `csp-a` … `csp-d` as stand-ins; real `zone_002430579` retained | You approved real CSP names, then chose to anonymise them for public publication. The four labels map to the four real CSPs of that zone — the mapping is deliberately not recorded here. Connection IDs (`c-88xx`) and August 2026 dates are invented. |
 | §4 | The "consequence" paragraph and the held notification rail | Your Q7 answer was "no surface". The consequence and the existing disabled rail are noted so the decision is revisitable, not reopened. |
 
 ---
