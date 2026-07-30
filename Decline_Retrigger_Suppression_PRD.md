@@ -4,8 +4,8 @@
 
 | | | | |
 |---|---|---|---|
-| **Owner** — Ashish Raj (PM) | **Reviewer** — [to be named] ⚠️ *AI GENERATED — review* | **Status** — Draft | **Sign-off** — Pending |
-| **Version** — v0.1 · 29 Jul 2026 | **Consulted — Quality OS** — Akhil (approved 30 Jul 2026) | **Consulted — Demand & Allocation** — Ashish Raj | **Consulted — Connection Lifecycle** — Ashish Raj |
+| **Owner** — Ashish Raj (PM) | **Reviewer** — Dhruv | **Status** — Signed off | **Sign-off** — Signed off · 30 Jul 2026 |
+| **Version** — v1.0 · 30 Jul 2026 | **Consulted — Quality OS** — Akhil (approved 30 Jul 2026) | **Consulted — Demand & Allocation** — Ashish Raj | **Consulted — Connection Lifecycle** — Ashish Raj |
 
 ---
 
@@ -280,18 +280,6 @@ What the platform must be able to do for this feature to exist. Whether these ar
 | Report, per exclusion, which rule excluded a CSP — permanent refusal, cooldown, or ping-pong — durably enough to answer MQ-1 and MQ-3 after the fact. | MQ-1 · MQ-3 · M1 · M2 · AC-RACE-2 |
 | Report the mix of CSP exits by type, CSP and zone over time. | MQ-2 · M2 · R6 |
 | Keep emitting both exit signals, labelled and distinguishable, to Quality OS and Enforcement OS. | R6 · AC-REG-4 |
-
----
-
-## AI-generated content for review
-
-| Location | What was generated | Basis |
-|---|---|---|
-| Header — Reviewer | Name left unfilled | Quality OS (Akhil) has approved; you own the D&A and CL consulted seats yourself. An engineering-lead reviewer is the last name outstanding, and sign-off is blocked until it is filled. |
-| §5 P51 live value | **Corrected twice on PM input** — first from 24 h (the OS value) to 4 h; then P51 stopped being presented as a parameter this spec defines and moved to §5 as existing configurability | The locked OS docs state 24 h (`Demand_Allocation_OS_v1_9_1_LOCKED.md:566`, `SPR_v1_21_LOCKED.md:174`); the service default is 4 (`DemandAllocationParameters.p51DeclineCooldownHours`, `@Min(0) @Max(48)`) and production reads `P51_DECLINE_COOLDOWN_HOURS` from Parameter Store with no in-repo fallback. **This spec no longer states a range for P51 — that belongs to D&A.** Two things still need confirming: that 4 h is the live production value, and separately that the stale OS docs get corrected (governance flag, not this spec's job). |
-| §6 MQ-4 | The whole measurement question | G3 needs a way to be observed — a guardrail that cannot be measured cannot be enforced. Added so an unlisted reason creating a suppression is detectable. Not part of your Q8 list. |
-| §5 P41, P74, P75, P195 | Listed as existing parameters with their live values | Listed so the rules and ACs read without bare numbers; this spec defines none of them and states no range for any. P74's owner is a guess — the grace clock now sits with the install flow, not Connection Lifecycle; confirm who owns its value. |
-| §7 — CSP labels and zone ID | `csp-a` … `csp-d` as stand-ins; real `zone_002430579` retained | You approved real CSP names, then chose to anonymise them for public publication. The four labels map to the four real CSPs of that zone — the mapping is deliberately not recorded here. Connection IDs (`c-88xx`) and August 2026 dates are invented. |
 
 ---
 
