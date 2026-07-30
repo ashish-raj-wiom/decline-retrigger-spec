@@ -3,7 +3,7 @@
 | | | | |
 |---|---|---|---|
 | **Owner** — Ashish Raj (PM) | **Reviewer** — [to be named] ⚠️ *AI GENERATED — review* | **Status** — Draft | **Sign-off** — Pending |
-| **Version** — v0.1 · 29 Jul 2026 | **Consulted — Quality OS** — Vaibhav | **Consulted — Demand & Allocation** — [to be named] ⚠️ *AI GENERATED — review* | **Consulted — Connection Lifecycle** — [to be named] ⚠️ *AI GENERATED — review* |
+| **Version** — v0.1 · 29 Jul 2026 | **Consulted — Quality OS** — Akhil | **Consulted — Demand & Allocation** — [to be named] ⚠️ *AI GENERATED — review* | **Consulted — Connection Lifecycle** — [to be named] ⚠️ *AI GENERATED — review* |
 
 ---
 
@@ -43,7 +43,7 @@ Two metrics. Both count the same event — a connection being assigned to a CSP 
 | ID | Metric | Baseline | Target | Source |
 |---|---|---|---|---|
 | M1 | Assignments of a connection to a CSP who had already explicitly refused it | Not measured — today nothing records *why* a CSP left a connection, so the current rate cannot be read directly. Proxy only: 53% of re-offer chains included the decliner (see provenance note) | 0 | MQ-1 |
-| M2 | Same-CSP retries — assignments of a connection to a CSP who previously held it, attributable to a P41 or P74 timeout | Not separable — all four exits are recorded identically today, so no cause can be attributed | Every same-CSP retry traces to a P41 or P74 timeout; none traces to an explicit refusal ⚠️ *AI GENERATED — review* | MQ-1 |
+| M2 | Same-CSP retries — assignments of a connection to a CSP who previously held it, attributable to a P41 or P74 timeout | Not separable — all four exits are recorded identically today, so no cause can be attributed | Every same-CSP retry traces to a P41 or P74 timeout; none traces to an explicit refusal | MQ-1 |
 
 **Invariant (not a metric):** G1 re-offers after an explicit refusal = 0, zero tolerance. Monitored via MQ-1, not trended.
 
@@ -293,7 +293,7 @@ What the platform must be able to do for this feature to exist. Whether these ar
 
 | Location | What was generated | Basis |
 |---|---|---|
-| Header — Reviewer, Consulted (D&A, CL) | Names left unfilled | You named only Vaibhav (Quality OS). An eng-lead reviewer and D&A / CL consulted parties are needed before sign-off. |
+| Header — Reviewer, Consulted (D&A, CL) | Names left unfilled | You named only Akhil (Quality OS). An eng-lead reviewer and D&A / CL consulted parties are needed before sign-off. |
 | **C-01 / C-04 — the list inversion** | You said "use only P41 and P74". I inverted the framing: **suppression** is the enumerated allow-list (C-01), and everything else — including P41, P74 and any future or unknown reason — keeps today's behaviour by default. | A "retrigger only on P41/P74" rule would suppress on `CUSTOMER_REFUSED`, `VERIFICATION_FAILED`, `ACCESS_DENIED` and `BINDING_MISSING` — none of which are the CSP's refusal, so a CSP would be permanently blocked for a customer's or the system's decision. Inverting makes the default safe. **This is a material design decision you did not state — please confirm.** |
 | §5a P51 live value | **Corrected twice on PM input** — first from 24 h (the OS value) to 4 h; then P51 stopped being presented as a parameter this spec defines and moved to §5a as existing configurability | The locked OS docs state 24 h (`Demand_Allocation_OS_v1_9_1_LOCKED.md:566`, `SPR_v1_21_LOCKED.md:174`); the service default is 4 (`DemandAllocationParameters.p51DeclineCooldownHours`, `@Min(0) @Max(48)`) and production reads `P51_DECLINE_COOLDOWN_HOURS` from Parameter Store with no in-repo fallback. **This spec no longer states a range for P51 — that belongs to D&A.** Two things still need confirming: that 4 h is the live production value, and separately that the stale OS docs get corrected (governance flag, not this spec's job). |
 | §5 C-03 | Parameter, its default and range | You did not specify how fast suppression must take effect. Set to same-transaction so no eligibility window can open; needs D&A confirmation that this is achievable in the reroute path. |
