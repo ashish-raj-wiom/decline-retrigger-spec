@@ -42,14 +42,25 @@ Two metrics. Both count the same event — a connection being assigned to a CSP 
 
 | ID | Metric | Baseline | Target | Source |
 |---|---|---|---|---|
-| M1 | Assignments of a connection to a CSP who had already explicitly refused it | Not measured — today nothing records *why* a CSP left a connection, so the current rate cannot be read directly. Proxy only: 53% of re-offer chains included the decliner (see provenance note) | 0 | MQ-1 |
-| M2 | Same-CSP retries — assignments of a connection to a CSP who previously held it, attributable to a P41 or P74 timeout | Not separable — all four exits are recorded identically today, so no cause can be attributed | Every same-CSP retry traces to a P41 or P74 timeout; none traces to an explicit refusal | MQ-1 |
+| M1 | Assignments of a connection to a CSP who had already explicitly refused it | **228** in Jun 22 – Jul 20 2026 — 10.3% of all 2,221 re-offers. Of those 228, **53.1% were declined a second time** and exactly **1 (0.4%)** installed. | 0 | MQ-1 |
+| M2 | Same-CSP retries — assignments of a connection to a CSP who previously held it, attributable to a P41 or P74 timeout | **1,392** in the same window — 62.7% of all re-offers; **32 (2.3%)** installed | Volume unchanged. Every same-CSP retry traces to a P41 or P74 timeout, and none to an explicit refusal | MQ-1 |
 
 **Invariant (not a metric):** G1 re-offers after an explicit refusal = 0, zero tolerance. Monitored via MQ-1, not trended.
 
 **Note on M1.** MQ-1 counts every re-offer after a refusal, including those caused by the accepted R4b race. Race-caused cases are not separately attributed — a deliberate scope decision — so a non-zero M1 is inspected case by case to separate a genuine breach from an accepted race. M1's target of zero is therefore verified by inspection, not by the count alone.
 
-**Provenance of the M1 proxy.** The 53% figure is not measured by this system and is not a baseline for M1 as defined. It comes from the CSP decline analysis of Jun 22 – Jul 20 2026 (`csp_decline_intelligence`: `decline-signal-analysis.html` and its queries), computed from `INSTALL_EXECUTION_CANDIDATES` (Fivetran history mode, `_FIVETRAN_ACTIVE = TRUE`) and `INSTALL_STATE_TRANSITION_LOG.REASON_CODE`, and it counts re-offer *chains that included the decliner* — a related but different quantity. It is quoted to show the problem is real and common, not to set a target. It has not been re-run since. Once MQ-1 exists, M1 gets a true baseline and this proxy should be dropped.
+**Where the baselines come from.** The re-offer cohort table in the CSP decline analysis, Jun 22 – Jul 20 2026 (`decline-signal-analysis.html`, built from `INSTALL_EXECUTION_CANDIDATES` with `_FIVETRAN_ACTIVE = TRUE` and `INSTALL_STATE_TRANSITION_LOG.REASON_CODE`). It takes every re-offered (CSP, connection) pair — the same CSP offered the same connection a second time — and buckets it by what that CSP did on his **first** assignment:
+
+| First-assignment action | Re-offered pairs | 2nd attempt: proposed | 2nd: declined | 2nd: timed out | Installs on 2nd attempt |
+|---|---|---|---|---|---|
+| Timed out (P41) | 1,392 | 14.7% | 7.3% | 77.9% | 32 (2.3%) |
+| Slot proposed (failed downstream) | 601 | 54.7% | 13.0% | 32.1% | 20 (3.3%) |
+| Declined | 228 | 9.6% | 53.1% | 37.3% | 1 (0.4%) |
+| **All re-offers** | **2,221** | 25.0% | 13.5% | 61.4% | **53 (2.4%)** |
+
+**This table is the empirical case for splitting the two paths.** A re-offer to a CSP who declined installs **0.4%** of the time and is declined again **53.1%** of the time — it mostly just collects a second refusal. A re-offer after a P41 timeout installs **2.3%** of the time, roughly six times better. Suppressing the first while keeping the second is what G1 and G2 encode.
+
+Two limits on the M1 baseline. **228 is a floor, not the full figure**: M1 covers post-acceptance CSP-reported failures as well as pre-acceptance declines, and those are not isolated here — they sit inside the 601 "slot proposed, failed downstream" bucket mixed with causes that are nobody's refusal. And the window is one month, not a rate that has been tracked since. Once MQ-1 exists, M1 is measured directly and both figures should be restated from it.
 
 ---
 
@@ -113,7 +124,7 @@ flowchart TD
 
 **No screen changes.** This feature is behaviour-only, on the PM's explicit decision. No CSP-facing surface, no ops console, no new notification. The only observation surface is the existing routing audit trace, which already records a per-CSP exclusion reason in its decision trace and needs no change beyond carrying the new permanent-refusal reason (R1b).
 
-**Consequence, stated deliberately.** ⚠️ *AI GENERATED — review* The promise in G1 is never spoken to the CSP. He learns it only by noticing, over repeated bookings, that refused jobs stop returning. Trust therefore accrues slowly and silently, and a CSP who has not noticed the change gets no benefit from it in the meantime. An existing but disabled rail could carry this message if that decision is revisited: the CSP-app Updates feed and CleverTap notification coded for install-booking removal, currently held pending design sign-off on copy, threshold and channel.
+**Consequence, stated deliberately.** The promise in G1 is never spoken to the CSP. He learns it only by noticing, over repeated bookings, that refused jobs stop returning. Trust therefore accrues slowly and silently, and a CSP who has not noticed the change gets no benefit from it in the meantime. An existing but disabled rail could carry this message if that decision is revisited: the CSP-app Updates feed and CleverTap notification coded for install-booking removal, currently held pending design sign-off on copy, threshold and channel.
 
 ---
 
@@ -303,7 +314,6 @@ What the platform must be able to do for this feature to exist. Whether these ar
 | §7 AC-SUP-7 | The two-CSP mixed-exit AC | Adversarial pass: nothing else pinned that a refusal by one CSP leaves another CSP's standing untouched. |
 | §7 AC-REG-5 | The cross-connection non-leak AC | Adversarial pass: nothing else pinned that suppression cannot over-block a CSP on unrelated connections — the worst failure mode of this feature. |
 | §7 — CSP labels and zone ID | `csp-a` … `csp-d` as stand-ins; real `zone_002430579` retained | You approved real CSP names, then chose to anonymise them for public publication. The four labels map to the four real CSPs of that zone — the mapping is deliberately not recorded here. Connection IDs (`c-88xx`) and August 2026 dates are invented. |
-| §4 | The "consequence" paragraph and the held notification rail | Your Q7 answer was "no surface". The consequence and the existing disabled rail are noted so the decision is revisitable, not reopened. |
 
 ---
 
