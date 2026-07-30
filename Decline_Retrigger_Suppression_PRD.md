@@ -35,7 +35,7 @@ Hard limits: suppression is scoped to a single (CSP, connection) pair and lives 
 | G1 | **An explicit no is final** | Once a CSP explicitly refuses a connection, that connection is never assigned to that CSP again — except where his refusal commits after a timeout reroute has already committed for the same allocation (R4b). | R1 · R2 · R4 · AC-SUP-1 · AC-SUP-2 · AC-GRD-1 · AC-RACE-1 · MQ-1 |
 | G2 | **Silence still gets a second chance** | A P41 or P74 timeout leaves the ping-pong allowance (P195) untouched, so the connection may still return to that CSP once. | R3 · AC-TMO-1 · AC-TMO-3 · AC-CFG-1 · MQ-2 |
 | G3 | **Only a CSP's own two actions block** | Nothing suppresses unless the CSP himself declined (R1) or reported the installation failed (R2). Every exit he did not submit — a timeout, a system integrity failure, a reason code we have never seen — keeps today's behaviour and can never permanently exclude him. | R5 · AC-DFL-1 · AC-REG-2 · AC-GRD-2 · MQ-4 |
-| G4 | **No new cost to the customer** | Suppression never changes when a connection expires. A suppressed-and-exhausted connection follows the same P75 path it follows today. | R6 · AC-FAIL-1 · AC-REG-1 · MQ-3 |
+| G4 | **No new cost to the customer** | Suppression never changes when a connection expires. A suppressed-and-exhausted connection follows the same P75 path it follows today. | R6 · AC-REG-1 · MQ-3 |
 | G5 | **The reason is never consulted** | Suppression depends only on whether the CSP ended the job himself. No reason code — present or future, blaming the customer or anyone else — changes whether it applies. A CSP cannot pick his way out of it. | R1 · R2 · R5 · AC-SUP-8 · AC-GRD-3 · MQ-4 |
 
 ### Success metrics
@@ -202,12 +202,6 @@ These already exist and are already configurable. This spec does **not** introdu
 | AC-WF-1 | **Given** connection `c-8830` in `zone_002430579` newly requested on 5 Aug 2026, **When** csp-a declines it at 09:35 (`COVERAGE_NOT_FEASIBLE`), it reroutes to csp-c who lets the P41 window lapse, it reroutes again to csp-b who accepts and installs on 7 Aug, **Then** `c-8830` is active, csp-a was never offered it again at any point, and csp-c remained eligible throughout with a ping-pong count of 1. | R1b · R3b · G1 · G2 | Settled |
 | AC-WF-2 | **Given** connection `c-8831` in a two-CSP zone, **When** both csp-a and csp-d explicitly decline it on 5 Aug 2026, **Then** routing fails with every candidate permanently excluded, the connection stays in REQUESTED, and it expires at P75 (7 days) on 12 Aug 2026 without either CSP being offered it again. | G1 · G4 · R6b · R6 must-not (b) | Settled |
 
-### FAIL — Failure windows (R8)
-
-| AC | Given / When / Then | Verifies | Status |
-|---|---|---|---|
-| AC-FAIL-1 | **Given** csp-a declining `c-8840`, **When** the suppression cannot be recorded, **Then** the decline is still accepted, cooldown and count are applied as today, the connection is still rerouted, and the failure to suppress is raised for operations — the CSP is never blocked on the strength of an unrecorded refusal, and the customer's connection is never stalled by it. | R8a · R8b · R8c · R8 must-not (a) · R8 must-not (b) · R8 must-not (c) · G3 · G4 · R1 must-not (b) | Settled |
-
 ### REG — Regression (§1 Boundary)
 
 | AC | Given / When / Then | Verifies | Status |
@@ -216,7 +210,7 @@ These already exist and are already configurable. This spec does **not** introdu
 | AC-REG-2 | **Given** the exits the CSP did not submit — a P41 timeout, a P74 timeout, a missing device binding — **When** each occurs, **Then** each behaves exactly as it does today. | §1 Boundary · R5 · G3 | Settled |
 | AC-REG-3 | **Given** any refusal or timeout, **When** it is processed, **Then** the reroute happens at the same point and with the same immediacy as today, and the two retry counters (P78 on the connection, P50 on the allocation) move exactly as they do today. | §1 Boundary · R1c · R2c | Settled |
 | AC-REG-4 | **Given** a decline and a P41 timeout, **When** each is processed, **Then** the existing decline-pattern signal is emitted for both, with its present type labels and reason codes unchanged, and both remain distinguishable to Quality OS. | R7a · R7b · R7 must-not | Settled |
-| AC-REG-5 ⚠️ *AI GENERATED — review* | **Given** csp-a permanently suppressed on `c-8801`, **When** routing runs for a different connection `c-8899` in the same zone on the same day, **Then** csp-a is fully eligible for `c-8899` — suppression never leaks beyond the connection it was recorded against. | R1b · §1 Boundary | Settled |
+| AC-REG-5 | **Given** csp-a permanently suppressed on `c-8801`, **When** routing runs for a different connection `c-8899` in the same zone on the same day, **Then** csp-a is fully eligible for `c-8899` — suppression never leaks beyond the connection it was recorded against. | R1b · §1 Boundary | Settled |
 | AC-REG-6 | **Given** connection `c-8898` assigned to csp-a on 5 Aug 2026, **When** the customer cancels the booking, **Then** the connection moves to pending-deactivation or deactivated, no task is created for any CSP, no reroute occurs, and no suppression is recorded — the cancel path is untouched by this spec. | §1 Boundary | Settled |
 
 ### RACE — Precedence (§3)
@@ -299,7 +293,6 @@ What the platform must be able to do for this feature to exist. Whether these ar
 | §5 P51 live value | **Corrected twice on PM input** — first from 24 h (the OS value) to 4 h; then P51 stopped being presented as a parameter this spec defines and moved to §5 as existing configurability | The locked OS docs state 24 h (`Demand_Allocation_OS_v1_9_1_LOCKED.md:566`, `SPR_v1_21_LOCKED.md:174`); the service default is 4 (`DemandAllocationParameters.p51DeclineCooldownHours`, `@Min(0) @Max(48)`) and production reads `P51_DECLINE_COOLDOWN_HOURS` from Parameter Store with no in-repo fallback. **This spec no longer states a range for P51 — that belongs to D&A.** Two things still need confirming: that 4 h is the live production value, and separately that the stale OS docs get corrected (governance flag, not this spec's job). |
 | §6 MQ-4 | The whole measurement question | G3 needs a way to be observed — a guardrail that cannot be measured cannot be enforced. Added so an unlisted reason creating a suppression is detectable. Not part of your Q8 list. |
 | §5 P41, P74, P75, P195 | Listed as existing parameters with their live values | Listed so the rules and ACs read without bare numbers; this spec defines none of them and states no range for any. P74's owner is a guess — the grace clock now sits with the install flow, not Connection Lifecycle; confirm who owns its value. |
-| §7 AC-REG-5 | The cross-connection non-leak AC | Adversarial pass: nothing else pinned that suppression cannot over-block a CSP on unrelated connections — the worst failure mode of this feature. |
 | §7 — CSP labels and zone ID | `csp-a` … `csp-d` as stand-ins; real `zone_002430579` retained | You approved real CSP names, then chose to anonymise them for public publication. The four labels map to the four real CSPs of that zone — the mapping is deliberately not recorded here. Connection IDs (`c-88xx`) and August 2026 dates are invented. |
 
 ---
