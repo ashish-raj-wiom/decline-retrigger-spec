@@ -4,8 +4,8 @@
 
 | | | | |
 |---|---|---|---|
-| **Owner** — Ashish Raj (PM) | **Reviewer** — Dhruv | **Status** — Signed off | **Sign-off** — Signed off · 30 Jul 2026 |
-| **Version** — v1.0 · 30 Jul 2026 | **Consulted — Quality OS** — Akhil (approved 30 Jul 2026) | **Consulted — Demand & Allocation** — Ashish Raj | **Consulted — Connection Lifecycle** — Ashish Raj |
+| **Owner** — Ashish Raj (PM) | **Reviewer** — Dhruv | **Status** — In review (v1.1 additions) | **Sign-off** — v1.0 signed off · 30 Jul 2026; v1.1 pending |
+| **Version** — v1.1 · 31 Jul 2026 | **Consulted — Quality OS** — Akhil (approved 30 Jul 2026) | **Consulted — Demand & Allocation** — Ashish Raj | **Consulted — Connection Lifecycle** — Ashish Raj |
 
 ---
 
@@ -24,6 +24,7 @@ It leaves unchanged:
 - **A cancelled booking.** When the customer cancels, the booking is terminated: Connection Lifecycle moves the connection to pending-deactivation or deactivated, and no new task is ever created for it. Nothing is re-offered to anybody, so suppression has nothing to act on. Entirely out of scope (AC-REG-6).
 - **Exits the CSP did not submit.** A P41 or P74 timeout, or a system integrity failure such as a missing device binding, keeps today's behaviour: cooldown, count, and the connection may return (R3, G3). The line is drawn on **who ended the job**, never on the reason given for it.
 - **Reason codes are never consulted.** If the CSP submits a decline or an installation-failure report, suppression applies — whatever reason he picked, including one that blames the customer. Reasons are self-reported and unverifiable at the moment they are given, so treating them as facts would let a CSP choose a reason that keeps the connection coming back (G5).
+- **Verifying what a CSP claims — later.** No reason a CSP gives is checked today, and this version checks none. A later version is expected to verify specific reason classes — a customer-claim reason such as "customer refused" is the obvious first candidate, since it is the one this platform could confirm with the customer directly. Verification will change what a reason *means* and what else the platform does about it; it will never change whether a refusal suppresses, which turns on the actor alone (G5).
 - **Pool exhaustion and expiry.** When suppression leaves no eligible CSP, routing fails as it does today and the connection waits out P75. No new ops signal, no rescue path (R5).
 
 Hard limits: suppression is scoped to a single (CSP, connection) pair and lives only as long as that connection. A per-CSP key is sufficient because an operator and a CSP are a one-to-one mapping — there is no second account through which the same operator could be offered the connection again. It does **not** survive re-booking — see the known limit below.
@@ -39,6 +40,7 @@ Hard limits: suppression is scoped to a single (CSP, connection) pair and lives 
 | G3 | **Only a CSP's own two actions block** | R1 and R2 are the only rules in this spec that create a suppression, so nothing else can. Every exit the CSP did not submit — a timeout, a system integrity failure, a reason code we have never seen — keeps today's behaviour and can never permanently exclude him. | R1a · R2a · AC-DFL-1 · AC-REG-2 · AC-GRD-2 |
 | G4 | **No new cost to the customer** | Suppression never changes when a connection expires. A suppressed-and-exhausted connection follows the same P75 path it follows today. | R5 · AC-REG-1 · MQ-3 |
 | G5 | **The reason is never consulted** | Suppression depends only on whether the CSP ended the job himself. No reason code — present or future, blaming the customer or anyone else — changes whether it applies. A CSP cannot pick his way out of it. | R1 · R2 · AC-SUP-8 · AC-GRD-3 |
+| G6 | **A refusal costs nothing beyond this connection** | Declining a booking, or reporting an installation failed, never reduces how many bookings the CSP is offered afterwards, never changes his zone eligibility or exposure, and is never treated as a fault against him. The single consequence is that this one connection does not come back. | R7 · R8 · AC-SCR-1 · AC-GRD-4 · AC-REG-7 · MQ-4 ⚠️ *AI GENERATED — review* |
 
 ### Success metrics
 
@@ -77,9 +79,11 @@ Two limits on the M1 baseline. **228 is a floor, not the full figure**: M1 cover
 | R3 | As the platform, I want a CSP who simply ran out of time to keep his existing second chance, so that we do not punish a busy CSP as if he had refused the work. | **(a)** On a P41 or P74 timeout, apply the assignment cooldown (P51) and increment the ping-pong count exactly as today. **(b)** Allow the connection to return to that CSP while the count is below the allowance (P195). | Create a permanent suppression from a timeout, on any path. |
 | R4 | As the platform, I want a predictable outcome when a CSP's refusal and a system timeout land at the same instant, so that neither branch corrupts the other. | **(a)** Apply whichever branch commits first; that branch alone decides the outcome for that allocation. **(b)** Where the timeout branch committed first, still accept and record the CSP's refusal for Quality and Enforcement — without retroactively suppressing. | **(a)** Fail, discard or block the CSP's refusal because a timeout already committed. **(b)** Apply both branches' effects to the same allocation. |
 | R5 | As a customer, I want my booking to live exactly as long as it does today, so that this change does not quietly shorten my chance of getting connected. | **(a)** Leave the P75 request window untouched. **(b)** When suppression leaves no eligible CSP, fail routing as today and let the connection wait out P75. | **(a)** Re-include a suppressed CSP in order to avoid an empty pool. **(b)** Shorten or extend the request window because a suppression exists. |
-| R6 | As the Quality OS owner, I want to keep seeing refusals and timeouts as separate, labelled signals, so that I can score a silent timeout at least as harshly as a declared refusal. | **(a)** Keep emitting the existing decline-pattern signal for both exit types, with their present type labels and reason codes, unchanged. **(b)** Keep the two types distinguishable end to end. | Merge, relabel or drop either signal as a side-effect of this change. |
+| R6 | As the Quality OS owner, I want to keep seeing refusals and timeouts as separate, labelled signals, so that I can tell one from the other in analysis without either being treated as a fault. | **(a)** Keep emitting the existing decline-pattern signal for both exit types, with their present type labels and reason codes, unchanged. **(b)** Keep the two types distinguishable end to end. | Merge, relabel or drop either signal as a side-effect of this change. |
+| R7 | As a CSP, I want telling you "I can't install" to cost me nothing except this one booking, so that being honest about what I cannot do is never a risk to my future work. ⚠️ *AI GENERATED — review* | **(a)** Leave the CSP's future allocation volume untouched — a refusal, or a count of refusals, must never reduce how many bookings he is offered afterwards. **(b)** Leave his zone eligibility and exposure unchanged. **(c)** Carry the refusal to Quality OS and Enforcement OS as information, not as a fault signal — and depend on neither scoring it as one (see the cross-OS dependency note). | **(a)** Use a refusal, or the number of refusals, to reduce his future allocations. **(b)** Change his zone eligibility, exposure band or capacity because he refused. **(c)** Present or record a refusal as a failure on his part. |
+| R8 | As a CSP deciding whether to decline, I want the app to tell me plainly what happens next, so that I trust that saying "I can't install" is welcome rather than risky. ⚠️ *AI GENERATED — review* | **(a)** At the moment he declines or reports an installation failure, tell the CSP three things: this connection will not be sent to him again; it will not affect his future bookings; and the information is useful to us. **(b)** Make clear the consequence is scoped to this booking alone. | **(a)** Imply that refusing carries a penalty or may reduce future work. **(b)** Present it as a warning, or as a confirm-the-consequences prompt that discourages the action. |
 
-**Cross-OS dependency (R6).** This spec makes an explicit refusal operationally *better* for the CSP than going silent: refuse and the booking never returns; stay silent and it returns once. That pull only survives if Quality OS does not penalise the declared refusal more harshly than the silent timeout — the timeout-parity rule. Quality OS is owned outside this spec, and nothing here forces it. What this spec guarantees is that Quality OS has the data to apply parity: both signals continue to arrive, labelled. MQ-2 watches the mix so a scoring rule that cancels the incentive is visible.
+**Cross-OS dependency (R6, R7c).** This spec makes an explicit refusal operationally *better* for the CSP than going silent: refuse and the booking never returns; stay silent and it returns once. G6 goes further and promises the CSP that refusing costs him nothing else at all. **Neither Quality OS nor Enforcement OS is owned by this spec, so neither promise can be enforced from here** — what this spec does is emit the refusal as information, keep it distinguishable (R6), and state the dependency plainly: a refusal must not be scored as a fault. If Quality OS does score it, G6 is broken from outside and the CSP learns that the reassurance in §4 was not true. MQ-2 watches the exit mix so a scoring rule that pushes CSPs back into silence becomes visible; MQ-4 watches whether refusing changes what a CSP is offered afterwards. ⚠️ *AI GENERATED — review*
 
 ---
 
@@ -119,13 +123,29 @@ flowchart TD
 
 ## 4. Screen Requirements
 
-**Experience intent:** the CSP experiences this as an absence — the booking he refused simply never comes back. Nothing on any screen announces it.
+**Experience intent:** refusing a job should feel like useful, welcome information — not like an admission with consequences. The CSP should finish the flow certain of two things: this connection will not come back, and nothing else about his work changes.
 
-**Master design file:** none — no design work in scope.
+**Master design file:** none yet — **design needed** for the confirmation below.
 
-**No screen changes.** This feature is behaviour-only, on the PM's explicit decision. No CSP-facing surface, no ops console, no new notification. The only observation surface is the existing routing audit trace, which already records a per-CSP exclusion reason in its decision trace and needs no change beyond carrying the new permanent-refusal reason (R1b).
+### Refusal confirmation — CSP app, at decline and at report-installation-failed ⚠️ *AI GENERATED — review*
 
-**Consequence, stated deliberately.** The promise in G1 is never spoken to the CSP. He learns it only by noticing, over repeated bookings, that refused jobs stop returning. Trust therefore accrues slowly and silently, and a CSP who has not noticed the change gets no benefit from it in the meantime. An existing but disabled rail could carry this message if that decision is revisited: the CSP-app Updates feed and CleverTap notification coded for install-booking removal, currently held pending design sign-off on copy, threshold and channel.
+**States:** *offered* (the CSP has chosen to decline, or to report the installation failed, and has not yet submitted) · *submitted* (after submission, brief acknowledgement).
+**Freshness:** shown on the action, before submission; no polling.
+
+| Element | Source / Routes to | Logic |
+|---|---|---|
+| Message — this connection will not be sent to you again | R8a | Always, in both the decline and report-failure flows |
+| Message — this will not affect your future bookings | R8a · G6 | Always. This is the reassurance the guardrail exists to make true |
+| Message — telling us is useful | R8a | Always. Framed as welcome information, never as a consequence to accept |
+| Action — confirm the refusal | R1 / R2 via §3 | Submits; no additional friction beyond this screen |
+| Action — go back | — | Leaves the booking untouched; no suppression is recorded |
+| Check — none | — | The CSP is not asked to justify or re-confirm; R8 must-not (b) forbids a discouraging prompt |
+
+**Copy varies by reason later, not now.** The three messages are the same for every reason code in this version. Once reason verification exists (§1 Boundary), the wording can differ by reason class — for example a customer-claim reason could say the customer will be contacted. That is a later version and no part of this one.
+
+**The one thing not on a screen.** Nothing tells the CSP later that a *previously* refused booking never returned; the promise is made once, at the moment of refusal. An existing but disabled rail could carry a follow-up if that is ever wanted: the CSP-app Updates feed and CleverTap notification coded for install-booking removal, currently held pending design sign-off on copy, threshold and channel.
+
+
 
 ---
 
@@ -155,6 +175,7 @@ These already exist and are already configurable. This spec does **not** introdu
 |---|---|---|
 | MQ-1 | For every assignment of a connection to a CSP who has already held it, which exit ended that CSP's previous hold — an explicit refusal, or a P41 or P74 timeout. Enough detail per case to tell a genuine breach from the accepted R4b race. | M1 (and its invariant) · M2 · G1 · G2 |
 | MQ-2 | The mix of CSP exits over time — explicit refusals versus P41 and P74 timeouts — by CSP and by zone, so a Quality OS scoring rule that pushes CSPs back into silence is visible. | G2 · R6 |
+| MQ-4 ⚠️ *AI GENERATED — review* | For a CSP who refused a connection, whether what he was offered afterwards changed — his allocation volume, his zone eligibility and his exposure, compared with CSPs who did not refuse in the same period and zone. | G6 · R7a · R7b |
 | MQ-3 | How many connections reached routing failure with every candidate excluded; for how many of those a permanent suppression was among the exclusion causes; and how many of those ended at P75 expiry rather than recovering. | G4 · R5 |
 
 ---
@@ -192,6 +213,15 @@ These already exist and are already configurable. This spec does **not** introdu
 |---|---|---|---|
 | AC-DFL-1 | **Given** connection `c-8821` assigned to csp-d, **When** the install fails with `BINDING_MISSING` — a device-binding integrity failure, not a CSP decision — **Then** no suppression is created, and the reason is still recorded so it stays visible for later analysis. | G3 | Settled |
 
+### SCR — Refusal confirmation (R8) ⚠️ *AI GENERATED — review*
+
+| AC | Given / When / Then | Verifies | Status |
+|---|---|---|---|
+| AC-SCR-1 | **Given** csp-a viewing booking `c-8801`, **When** he chooses to decline it, **Then** before submitting he is told all three things: this connection will not be sent to him again, it will not affect his future bookings, and the information is useful — and nothing on the screen presents refusing as a penalty or a risk. | R8a · R8b · R8 must-not (a) · G6 | Settled |
+| AC-SCR-2 | **Given** csp-b on site for `c-8802` with a technician already assigned, **When** he chooses to report the installation could not be completed, **Then** he sees the same three messages — the reassurance is identical in the post-acceptance flow, because the consequence is identical. | R8a · R8b · G6 | Settled |
+| AC-SCR-3 | **Given** csp-a on the confirmation screen for `c-8801`, **When** he chooses to go back instead of confirming, **Then** the booking is untouched, no suppression is recorded, and he can still assign a technician to it. | R8 must-not (b) · R1a | Settled |
+| AC-SCR-4 | **Given** every reason code a CSP can select, **When** he reaches the confirmation for any of them, **Then** the three messages read the same — reason-specific copy is a later version (§1 Boundary, §4). | R8a · G5 | Settled |
+
 ### WF — Workflows
 
 | AC | Given / When / Then | Verifies | Status |
@@ -201,6 +231,8 @@ These already exist and are already configurable. This spec does **not** introdu
 
 ### REG — Regression (§1 Boundary)
 
+The criteria below AC-REG-6 pin what must keep working in Demand & Allocation and Connection Lifecycle where this spec changes nothing. They are the list a reviewer should argue with first: an omission here is a regression nobody will catch. ⚠️ *AI GENERATED — review*
+
 | AC | Given / When / Then | Verifies | Status |
 |---|---|---|---|
 | AC-REG-1 | **Given** the P41 and P74 timers as configured today, **When** this spec ships, **Then** both fire at the same deadlines, with the same anchors and the same working-hours gating as before, and P75 expiry is unchanged. | R5a · §1 Boundary · G4 | Settled |
@@ -209,6 +241,15 @@ These already exist and are already configurable. This spec does **not** introdu
 | AC-REG-4 | **Given** a decline and a P41 timeout, **When** each is processed, **Then** the existing decline-pattern signal is emitted for both, with its present type labels and reason codes unchanged, and both remain distinguishable to Quality OS. | R6a · R6b · R6 must-not | Settled |
 | AC-REG-5 | **Given** csp-a permanently suppressed on `c-8801`, **When** routing runs for a different connection `c-8899` in the same zone on the same day, **Then** csp-a is fully eligible for `c-8899` — suppression never leaks beyond the connection it was recorded against. | R1b · §1 Boundary | Settled |
 | AC-REG-6 | **Given** connection `c-8898` assigned to csp-a on 5 Aug 2026, **When** the customer cancels the booking, **Then** the connection moves to pending-deactivation or deactivated, no task is created for any CSP, no reroute occurs, and no suppression is recorded — the cancel path is untouched by this spec. | §1 Boundary | Settled |
+
+| AC-REG-7 | **Given** a connection with no suppression against any CSP, **When** routing runs, **Then** every stage behaves exactly as today — zone-eligible CSPs are gathered, intersected with the candidates the request carried, filtered by the existing exposure-band, capacity-cap and load gates, and the winner chosen by the existing tie-break. Suppression adds one exclusion test and changes nothing else in the pipeline. | §1 Boundary · G3 | Settled |
+| AC-REG-8 | **Given** any exit — a refusal or a timeout — **When** it is processed, **Then** the cooldown entry (P51) and the ping-pong increment (P195) are still written for that CSP on that connection, exactly as today. Suppression is additional to them (R1d, R2d), so a CSP who is suppressed still carries the same cooldown and count he would have carried before. | R1d · R2d · §1 Boundary | Settled |
+| AC-REG-9 | **Given** a connection whose routing finds nobody for reasons unrelated to suppression, **When** the routing-failure path runs, **Then** the existing retry behaviour is unchanged: the held-allocation retry still re-attempts on its existing schedule (P191), and the routing-retry ceiling (P50) still raises its existing exhaustion signal. | §1 Boundary · G4 | Settled |
+| AC-REG-10 | **Given** any routing pass, **When** it completes, **Then** the routing decision log is still written with its existing fields and per-CSP exclusion reasons — the only addition being the new permanent-refusal reason. Nothing existing is renamed or dropped. | §1 Boundary · MQ-1 · MQ-3 | Settled |
+| AC-REG-11 | **Given** csp-b reporting an installation failure on `c-8802`, **When** Connection Lifecycle processes it, **Then** its install-retry behaviour is exactly as today: the connection returns to REQUESTED, its install-attempt count increments, and if that count has reached its ceiling (P78) the connection goes to pending-deactivation instead of being rerouted. Suppression does not change which of those two happens. | R2c · §1 Boundary · G4 | Settled |
+| AC-REG-12 | **Given** connections sitting in each of the states Connection Lifecycle times out, **When** their timers run, **Then** request expiry (P75), pause expiry (P76) and deactivation timeout (P77) all fire as they do today. This spec arms, cancels and re-anchors no Connection Lifecycle timer. | R5a · §1 Boundary · G4 | Settled |
+| AC-REG-13 | **Given** any Connection Lifecycle state change on a connection with a suppression against one CSP, **When** it occurs, **Then** the state-change event is still emitted to its existing consumers with its existing payload — suppression is invisible outside Demand & Allocation. | §1 Boundary · R6b | Settled |
+| AC-REG-14 | **Given** a CSP who has refused a connection, **When** Quality OS and Enforcement OS receive the resulting signal, **Then** it arrives with the same type label and reason code it carries today, and no new field marks him as at fault (R7c). | R6a · R7c · R7 must-not (c) · G6 | Settled |
 
 ### RACE — Precedence (§3)
 
@@ -246,6 +287,7 @@ These already exist and are already configurable. This spec does **not** introdu
 |---|---|---|---|
 | AC-GRD-1 | **Given** the four CSPs of `zone_002430579` across 31 bookings over a month, **When** every explicit refusal in that period is replayed, **Then** no connection is ever assigned to a CSP who had already explicitly refused that same connection — except cases attributable to the R4b race, which are individually identifiable. | G1 · M1 · MQ-1 | Settled |
 | AC-GRD-2 | **Given** any exit the CSP did not submit himself, **When** it is processed on any path, **Then** no permanent suppression is created. | G3 | Settled |
+| AC-GRD-4 ⚠️ *AI GENERATED — review* | **Given** csp-a who declined three bookings in `zone_002430579` last week, **When** his allocations for this week are compared with a CSP in the same zone who declined none, **Then** csp-a's offer volume, zone eligibility and exposure are unchanged by the refusals — the only difference is that those three connections never returned to him. | G6 · R7a · R7b · R7 must-not (a) · R7 must-not (b) · MQ-4 | Settled |
 | AC-GRD-3 | **Given** every reason code a CSP can select on a decline or an installation-failure report — including any added later — **When** he submits one, **Then** a permanent suppression is created in every case: no reason code changes the outcome. | G5 · R1 must-not (c) · R2 must-not (c) | Settled |
 
 ---
@@ -279,7 +321,22 @@ What the platform must be able to do for this feature to exist. Whether these ar
 | Accept and record a refusal that cannot suppress because a timeout reroute already committed, without losing the refusal. | R4b · G3 |
 | Report, per exclusion, which rule excluded a CSP — permanent refusal, cooldown, or ping-pong — durably enough to answer MQ-1 and MQ-3 after the fact. | MQ-1 · MQ-3 · M1 · M2 · AC-RACE-2 |
 | Report the mix of CSP exits by type, CSP and zone over time. | MQ-2 · M2 · R6 |
-| Keep emitting both exit signals, labelled and distinguishable, to Quality OS and Enforcement OS. | R6 · AC-REG-4 |
+| Keep emitting both exit signals, labelled and distinguishable, to Quality OS and Enforcement OS, as information rather than as a fault. | R6 · R7c · AC-REG-4 · AC-REG-14 |
+| Tell a CSP, at the moment he refuses, what will and will not happen as a result — in both the decline and the report-failure flows. | R8 · G6 · AC-SCR-1 · AC-SCR-2 |
+| Show that refusing changed nothing else for a CSP: his offer volume, zone eligibility and exposure before and after, comparable against CSPs who did not refuse. | G6 · R7a · R7b · MQ-4 |
+
+---
+
+## AI-generated content for review
+
+| Location | What was generated | Basis |
+|---|---|---|
+| §1 G6 · §2 R7 | The guardrail and the rule behind it | You said a decline or reported failure must not affect routing or quality assessment. I split it: R7 states the obligation, G6 states it as a promise that holds on every path. **Two things need your call.** (1) "Does not impact routing" cannot mean literally no routing impact — suppression *is* a routing impact. I read it as no impact on *future* work: offer volume, zone eligibility, exposure. Confirm that reading. (2) R7c is a dependency, not something this spec can enforce — Quality OS and Enforcement OS are outside it. |
+| §2 Cross-OS dependency note | Rewritten around G6 | It previously said Quality OS must score a timeout *at least as harshly* as a refusal — the timeout-parity rule you approved on 29 Jul. G6 supersedes that: if a refusal is not a fault at all, parity is not the point any more; not-scoring-it is. **Akhil approved the old framing.** This needs re-confirming with him, because G6 now depends on Quality OS doing something it was not previously asked to do. |
+| §2 R8 · §4 screen block · §7 SCR group | The rule, the screen states and elements, and four criteria | You asked for reassurance at the point of declining. The three messages, the two states, the go-back path and the no-extra-friction constraint are my drafting of that intent. **Design is needed** — there is no design file, and copy is design's to write. |
+| §6 MQ-4 | The measurement question | G6 is a promise about *not* being penalised, which is exactly the kind of thing that regresses silently. You removed the previous MQ-4; this is a different question and it is the only thing that would catch a G6 breach after launch. |
+| §7 AC-REG-7 to AC-REG-14 | The DAS and CL continuity criteria | You asked for regressions covering what must keep happening where nothing changes. This list is derived from what the code does today, not from a conversation — argue with it. Most likely gap: something in DAS I have not read. |
+| §7 AC-GRD-4 | The G6 guardrail criterion | Compares a decliner's subsequent allocations against a non-decliner in the same zone. Needs a real comparison method before it is testable. |
 
 ---
 
@@ -289,7 +346,6 @@ What the platform must be able to do for this feature to exist. Whether these ar
 |---|---|---|---|
 | Template §7 requires a Race AC per precedence rule, and §1 guardrails should hold on every path | G1 carries a documented exception rather than holding unconditionally | PM chose first-commit-wins (Q6b) over explicit-action-wins. The hole is named in G1, §3 and AC-RACE-1 rather than hidden. | Ashish Raj, 29 Jul 2026 |
 | Template §6 expects every accepted risk to trace to an MQ | The R4b race has no dedicated measurement question | PM removed the race-frequency MQ (Q8). MQ-1 counts race-caused re-offers without separately attributing them; M1 carries a note that its zero target is verified by case inspection. | Ashish Raj, 29 Jul 2026 |
-| Template §4 expects screen requirements where a user-facing promise exists | No screens; the G1 promise is never communicated to the CSP | PM chose behaviour-only (Q7). Consequence stated in §4. | Ashish Raj, 29 Jul 2026 |
 | Template §3b requires a state transition table as the document's canon, and §7 requires a state-change AC per transition | **§3b is removed entirely.** §3 is now the dispatch chart plus its precedence rules; behaviour lives in §2 as lettered obligations, and every AC anchors to a rule, guardrail or parameter instead of a transition. | PM instruction: a PRD should not define what the states are. The removed table also invented six state names (OFFERED, BLOCKED_PERMANENT, COOLING, RETRIABLE, BLOCKED_EXHAUSTED, CLOSED) that exist in no service — naming them here risked being read as prescribing a state machine to D&A. The cooldown-and-count-still-apply obligation survived as R1d and R2d. The old table's failure envelope was first carried over as a rule, then dropped on PM review along with its criterion — see the failure-window override below. | Ashish Raj, 30 Jul 2026 |
 | Template §1/§6 require every guardrail to trace to a measurement question | **G3 and G5 trace to none.** Both are enforced by their acceptance criteria and by construction — R1 and R2 are the only rules that create a suppression — but nothing measures them after launch. | PM removed the measurement question that covered both. The residual risk: if a future change ever made something other than a CSP's own decline or failure report create a suppression, or made a reason code matter, no report would surface it. It would show up as CSPs quietly losing work, found by complaint rather than by monitoring. Accepted. | Ashish Raj, 30 Jul 2026 |
 | Template §7 requires a failure-window acceptance criterion in every PRD | **There is none, and no rule about failure either.** What happens if the platform cannot record a suppression is left entirely to engineering. | PM removed the failure-window criterion and then the rule behind it. Both were mine, carried over from the deleted state table rather than elicited, and neither was asked for. The residual risk is stated rather than hidden: if a suppression write fails silently and the system defaults to *suppressed*, a CSP is locked out of a job he never refused — the exact inverse of this spec's purpose. Engineering should default to un-suppressed when a suppression record is in doubt. | Ashish Raj, 30 Jul 2026 |
